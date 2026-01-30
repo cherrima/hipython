@@ -17,4 +17,7 @@ media/
 
 # IDE 설정 파일
 .idea/
+<<<<<<< HEAD
+.vscode/
+=======
 .vscode/
