@@ -1,10 +1,3 @@
-# hipython
-Markdown 형식의 파일입니다.
-
-# 웹 포트폴리오
-
-안녕하세요! AI전문가를 꿈구는 강창희니다.
-
 ## 🎯 About Me
 
 다양한 IT 영역에 대한 경험을 가지고 있습니다.
@@ -13,10 +6,10 @@ Markdown 형식의 파일입니다.
 
 ## 💻 기술 스택
 
-- Frontend: HTML5, CSS3, JavaScript, React
-- Backend: Node.js, Express
-- Database: MongoDB, MySQL
-- Version Control: Git, GitHub
+- Frontend: HTML5, # CSS3, JavaScript, React
+- Backend: Java, C/C++/C#, # Node.js, Express
+- Database: Oracle, MySQL
+- Version Control: Git, GitHub, SVN
 
 ## 🚀 프로젝트
 
@@ -35,27 +28,12 @@ Markdown 형식의 파일입니다.
 
 ## 📚 교육
 
-- 컴퓨터공학 전공
-- 웹 개발 부트캠프 수료
+- 삼정퓨처아카데미 참여 중
 
 ## 📞 연락처
 
-- 이메일: [example@email.com](mailto:example@email.com)
-- GitHub: [github.com/username](http://github.com/username)
+- 이메일: [changhee.ghang@gmail.com](mailto:changhee.ghang@gmail.com)
+- GitHub: [github.com/cherrima](http://github.com/cherrima)
 - LinkedIn: [linkedin.com/in/username](http://linkedin.com/in/username)
 
 함께 일하고 싶으시다면 언제든 연락 주세요!
-
-## 프로젝트 소개
-- 기획의도
-- 계획서
-
-# 제목 1
-## 제목 2 
-### 제목 3
-#### 제목 4
-
-**굵게**
-*기울임*
-~~취소선~~
-`코드
