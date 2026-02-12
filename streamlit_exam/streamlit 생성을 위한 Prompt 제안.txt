@@ -1,0 +1,130 @@
+다음 CSV 파일(walmart_data.csv)만을 사용하여 
+Walmart Black Friday 데이터를 분석하는 Streamlit 대시보드 프로그램을 작성해줘.
+
+[전체 요구사항]
+
+1. 전체 구조
+- 상단 Header 영역에 "Walmart Sales Analysis" 제목 표시
+- 사이드바 메뉴 구성:
+  - 개요
+  - 분석내용
+  - 결과
+- layout="wide" 사용
+
+-------------------------------------
+
+2. 개요 페이지
+
+- 프로젝트 설명 텍스트 표시
+- 아래 KPI 카드 5개 구성 (st.metric 사용)
+  - Transactions (전체 행 수)
+  - Unique Users (User_ID unique)
+  - Unique Products (Product_ID unique)
+  - Product Categories (Product_Category unique)
+  - Total Purchase (Purchase 합계)
+
+- 데이터 미리보기 (상위 20개)
+
+-------------------------------------
+
+3. 분석내용 페이지 (탭 3개 구성)
+
+탭:
+1. 데이터 살펴보기
+2. 고객 중심 분석
+3. 제품 카테고리 중심 분석
+
+-------------------------------------
+
+3-1. 데이터 살펴보기
+
+- 상단 KPI 5개 동일 표시
+- Purchase 분포 히스토그램 (Altair 사용)
+
+-------------------------------------
+
+3-2. 고객 중심 분석
+
+(1) user_stat_df 생성
+- User_ID 기준
+  - Product_Kinds (구매 건수)
+  - Purchase_Amount (구매금액 합)
+
+(2) 1인당 분포
+- 좌우 2분할
+  - 1인당 구매품목 boxplot
+  - 1인당 구매금액 boxplot
+
+(3) 연령(Age)별 통계 3분할
+- 구매품목 평균
+- 구매금액 평균
+- 구매금액 합
+- 각 영역에 데이터 테이블 + bar chart 표시
+
+(4) 아래 요약 코멘트 markdown으로 표시
+
+1인당 평균 93개 제품을 사지만 중간값은 54개로, 대량구매 고객 때문에 평균이 상승함  
+26-35세가 가장 구매력이 높음  
+18~45세 안정적 고객군  
+10대 보호자 동반 가능성  
+50대 이상 방문 적음 → 마케팅 여지
+
+-------------------------------------
+
+3-3. 제품 카테고리 중심 분석
+
+(1) product_cat_df 생성
+- Product_Kinds (nunique Product_ID)
+- Total_Purchase (sum Purchase)
+- Avg_Purchase_per_Product (Total_Purchase / Product_Kinds)
+
+(2) 상단 KPI 4개 표시
+- 카테고리 수
+- 제품 종류 수
+- 카테고리별 제품수 범위 (min ~ max)
+- 제품수 ↔ 총구매액 상관계수
+
+(3) 아래 3분할 bar chart 구성
+- 카테고리별 제품수
+- 카테고리별 구매액(합)
+- 제품당 평균구매액
+
+(4) stat_cat_age 분석
+
+- stat_cat_age = (df.groupby('Age').size() / df.shape[0])
+- 카테고리 10, 12, 17, 18 에 대해
+  Age별 구매 비율 비교
+- 2x2 라인 차트 구성
+- stat_cat_age.describe()에서 mean, std 표시
+
+섹션 제목은:
+"나이별 구매액 분포가 상이한 제품 카테고리"
+
+-------------------------------------
+
+4. 결과 페이지
+
+- KPI 5개 표시
+- 마케팅 전략 제안 markdown 작성
+
+-------------------------------------
+
+5. 디자인 요구사항
+
+- 모든 st.metric 카드에 강조 스타일 적용
+  - 그라디언트 배경
+  - hover 시 살짝 상승 효과
+  - 굵은 숫자 강조
+- Header 잘림 없도록 padding-top 조정
+- Altair 차트 사용
+- use_container_width=True 사용
+
+-------------------------------------
+
+6. 코드 요구사항
+
+- 전체 코드 한번에 출력
+- 캐싱 사용 (@st.cache_data)
+- CSV 경로는 "./data/walmart_data.csv"
+- 실행 명령은 streamlit run app.py
+
