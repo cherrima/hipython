@@ -5,6 +5,8 @@ venv/
 # 파이썬 컴파일 파일
 *.pyc
 __pycache__/
+.ipynb_checkpoints
+
 
 # 데이터베이스
 db.sqlite3
@@ -14,9 +16,27 @@ media/
 
 # 환경 변수 파일
 .env
+hugging/.env
 
 # 데이터 변수 파일
 data/
+Learning/cache
+Learning/data
+detect/data
+detect/datasets
+detect/runs
+hugging/my-imdb-model
+hugging/results
+
+
+# Model 및 관련 파일
+hugging/my-imdb-model
+hugging/results
+Learning/cache
+Learning/data
+detect/datasets
+detect/models
+detect/runs
 
 # IDE 설정 파일
 .idea/
