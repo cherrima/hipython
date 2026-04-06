@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <title>프론트엔드 페이지</title>
+</head>
+<body>
+    <h1>상품 정보</h1>
+    <input type="number" id="item-id-input" placeholder="상품 번호 입력" value="5">
+    <button onclick="getItemInfo()">상품 정보 가져오기</button>
+    <div id="item-info"></div>
+
+    <script>
+        function getItemInfo() {
+
+            // 1. input 태그에 입력된 값을 가져옵니다.
+            const itemId = document.getElementById('item-id-input').value;
+            
+            // 수정전
+            // print("*** itemId:", itemId) => windows.print() 실행
+            // 수정 후 (F12 콘솔 창에 출력됨)
+            console.log("*** itemId:", itemId);
+
+            // 2. 입력값이 없으면 경고창을 띄우거나 종료합니다.
+            if (!itemId) {
+                alert("상품 번호를 입력해주세요.");
+                return;
+            }
+
+            fetch('http://127.0.0.1:8000/items/' + itemId)
+                .then(response => response.json()) 
+                .then(data => { 
+                    // 화면에 데이터를 표시합니다.
+                    document.getElementById('item-info').innerText = 
+                        `상품명: ${data.name}, 상품ID: ${data.item_id}`;
+                })
+        }
+    </script>
+
+    <h1>뉴스 감성 분석</h1>
+    <!-- 1. 뉴스 입력 필드 추가 (ID: news-input) -->
+    <textarea id="news-input" 
+          rows="2" 
+          cols="50" 
+          placeholder="분석할 뉴스 내용을 입력하세요 (약 100자 내외)..." 
+          style="padding: 10px; font-family: D2coding; resize: vertical;"></textarea>
+    <br>
+    <button onclick="analyzeNews()">뉴스 감성 분석</button>
+    <div id="sentiment-info">결과가 여기에 표시됩니다.</div>
+
+    <script>
+        function analyzeNews() {
+            const newsText = document.getElementById('news-input').value;
+            const infoDiv = document.getElementById('sentiment-info');
+
+            if (!newsText) {
+                alert("뉴스 내용을 입력해주세요.");
+                return;
+            }
+
+            infoDiv.innerText = "분석 중...";
+
+            // FastAPI 엔드포인트 설정 (POST 방식)
+            fetch('http://127.0.0.1:8004/sentiment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: newsText
+                })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    infoDiv.innerHTML = `<span style="color:red;">에러 발생: ${data.error}</span>`;
+                } else {
+                    // 서버 응답 모델(SentimentResponse)에 맞춰 데이터 표시
+                    infoDiv.innerHTML = `
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 15px; border: 1px solid #ddd;">
+                            <thead>
+                                <tr style="background-color: #f2f2f2;">
+                                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">항목</th>
+                                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">내용</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; background-color: #fafafa; width: 30%;">입력 텍스트</td>
+                                    <td style="border: 1px solid #ddd; padding: 12px;">${data.text}</td>
+                                </tr>
+                                <tr>
+                                    <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; background-color: #fafafa;">분석 결과</td>
+                                    <td style="border: 1px solid #ddd; padding: 12px;"><span style="color: blue; font-weight: bold;">${data.label}</span></td>
+                                </tr>
+                                <tr>
+                                    <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; background-color: #fafafa;">신뢰 점수</td>
+                                    <td style="border: 1px solid #ddd; padding: 12px;"><span style="color: green;">${(data.score * 100).toFixed(2)}%</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                infoDiv.innerText = "분석 중 오류가 발생했습니다: " + error.message;
+            });
+        }
+    </script>
+</body>
+</html>
