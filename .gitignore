@@ -14,27 +14,15 @@ db.sqlite3
 # 미디어 파일
 media/
 
-# 환경 변수 파일
-.env
-hugging/.env
-
 # 데이터 변수 파일
 data/
-Learning/cache
-Learning/data
-detect/data
-detect/datasets
-detect/runs
-hugging/my-imdb-model
-hugging/results
+datasets/
+cache/
 
 
 # Model 및 관련 파일
 hugging/my-imdb-model
 hugging/results
-Learning/cache
-Learning/data
-detect/datasets
 detect/models
 detect/runs
 
@@ -45,3 +33,7 @@ detect/runs
 42.데이터전처리.ipynb
 Walmart/데이터 분석보고서_Walmart_Sales.pptx
 Walmart/walmart-black-friday-sales-eda.ipynb
+llm/.env
+hugging/.env
+fastapi/.env
+.env
