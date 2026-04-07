@@ -1,6 +1,7 @@
 # 가상 환경
 venv/
 .env/
+.env
 
 # 파이썬 컴파일 파일
 *.pyc
@@ -33,7 +34,5 @@ detect/runs
 42.데이터전처리.ipynb
 Walmart/데이터 분석보고서_Walmart_Sales.pptx
 Walmart/walmart-black-friday-sales-eda.ipynb
-llm/.env
-hugging/.env
-fastapi/.env
-.env
+
+
