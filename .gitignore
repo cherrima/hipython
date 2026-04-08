@@ -12,6 +12,7 @@ __pycache__/
 
 # 데이터베이스
 db.sqlite3
+.langchain.db
 
 # 미디어 파일
 media/
