@@ -26,12 +26,12 @@
                 return;
             }
 
-            fetch('http://127.0.0.1:8000/items/' + itemId)
+            fetch('/items/' + itemId)
                 .then(response => response.json()) 
                 .then(data => { 
                     // 화면에 데이터를 표시합니다.
                     document.getElementById('item-info').innerText = 
-                        `상품명: ${data.name}, 상품ID: ${data.item_id}`;
+                        `상품명: ${data.name}, 상품ID: ${itemId}`;
                 })
         }
     </script>
@@ -60,7 +60,8 @@
             infoDiv.innerText = "분석 중...";
 
             // FastAPI 엔드포인트 설정 (POST 방식)
-            fetch('http://127.0.0.1:8004/sentiment', {
+            // fetch('http://127.0.0.1:8004/sentiment', {
+            fetch('/sentiment/text', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

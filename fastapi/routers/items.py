@@ -2,24 +2,32 @@
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/items", tags=["종목"])
+router = APIRouter(prefix="/items", tags=["품목"])
 
 # 임시 종목 데이터
-ITEMS = [
-    {"id": 1, "ticker": "005930", "name": "삼성전자"},
-    {"id": 2, "ticker": "000660", "name": "SK하이닉스"},
-    {"id": 3, "ticker": "035420", "name": "NAVER"},
+COMPUTER_ITEMS = [
+    {"item_id": 1, "name": "데스크탑"},
+    {"item_id": 2, "name": "워크스테이션"},
+    {"item_id": 3, "name": "중형서버"},
+    {"item_id": 4, "name": "대형서버"},
+    {"item_id": 5, "name": "슈퍼컴퓨터"},
 ]
 
 
 @router.get("/")
 def list_items():
-    return ITEMS
+    return COMPUTER_ITEMS
 
 
 @router.get("/{item_id}")
-def get_item(item_id: int):
-    for item in ITEMS:
-        if item["id"] == item_id:
-            return item
-    return {"error": "존재하지 않는 종목입니다"}
+def read_item(item_id: int) -> dict: 
+    
+    item_name = "대상없음"
+    # 아이템 이름 가져오기
+    for item in COMPUTER_ITEMS :
+        if ( item["item_id"] == item_id ):
+           item_name =  item["name"]
+           break ;
+
+    return {"name": item_name}
+
