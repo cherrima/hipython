@@ -21,6 +21,7 @@ media/
 data/
 datasets/
 cache/
+temp
 
 
 # Model 및 관련 파일
@@ -36,5 +37,4 @@ detect/runs
 42.데이터전처리.ipynb
 Walmart/데이터 분석보고서_Walmart_Sales.pptx
 Walmart/walmart-black-friday-sales-eda.ipynb
-
 
