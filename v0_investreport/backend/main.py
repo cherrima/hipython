@@ -1,0 +1,417 @@
+"""
+LLM 투자 보고서 생성 서비스 - FastAPI Backend
+uvicorn으로 실행: uvicorn backend.main:app --reload --port 8000
+"""
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional
+import json
+
+from backend.search.stock_utils import stock_search
+
+app = FastAPI(
+    title="LLM 투자 보고서 생성 서비스 API",
+    description="투자 분석 보고서 생성을 위한 백엔드 API",
+    version="1.0.0"
+)
+
+# CORS 설정 (Next.js 프론트엔드와 통신 허용)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ============== 데이터 모델 ==============
+
+class CompanyBasicInfo(BaseModel):
+    longName: str
+    industry: str
+    sector: str
+    marketCap: str | int
+    sharesOutstanding: str | int
+
+
+class FinancialDataRow(BaseModel):
+    항목: str
+    # 동적 기간 컬럼을 위해 dict 사용
+    
+    class Config:
+        extra = "allow"
+
+
+class FinancialData(BaseModel):
+    incomeStatement: list[dict]
+    balanceSheet: list[dict]
+    cashFlow: list[dict]
+
+
+class CompanyData(BaseModel):
+    ticker: str
+    name: str
+    basicInfo: CompanyBasicInfo
+    financialData: FinancialData
+
+
+class InvestmentReport(BaseModel):
+    ticker: str
+    companyName: str
+    markdownContent: str
+
+
+class CompanyListItem(BaseModel):
+    ticker: str
+    name: str
+
+
+# ============== 샘플 데이터 ==============
+
+# Apple 기본정보 (dict/json 형식)
+apple_basic_info = {
+    "longName": "Apple Inc.",
+    "industry": "Consumer Electronics",
+    "sector": "Technology",
+    "marketCap": 3828662403072,
+    "sharesOutstanding": 14681140000,
+}
+
+# Apple 재무 데이터 (DataFrame 유사 형식)
+apple_financial_data = {
+    "incomeStatement": [
+        {"항목": "Total Revenue", "2025-12-31": "1.43756e+11", "2025-09-30": "1.02466e+11", "2025-06-30": "9.4036e+10", "2025-03-31": "9.5358e+10", "2024-12-31": "1.243e+11"},
+        {"항목": "Gross Profit", "2025-12-31": "6.9231e+10", "2025-09-30": "4.8341e+10", "2025-06-30": "4.3718e+10", "2025-03-31": "4.4867e+10", "2024-12-31": "5.8275e+10"},
+        {"항목": "Operating Income", "2025-12-31": "5.0852e+10", "2025-09-30": "3.2427e+10", "2025-06-30": "2.8202e+10", "2025-03-31": "2.9589e+10", "2024-12-31": "3.9e+10"},
+        {"항목": "Net Income", "2025-12-31": "4.2097e+10", "2025-09-30": "2.7466e+10", "2025-06-30": "2.3434e+10", "2025-03-31": "2.478e+10", "2024-12-31": "3.633e+10"},
+    ],
+    "balanceSheet": [
+        {"항목": "Total Assets", "2025-12-31": "3.79297e+11", "2025-09-30": "3.59241e+11", "2025-06-30": "3.31495e+11", "2025-03-31": "3.31233e+11", "2024-12-31": "3.44085e+11"},
+        {"항목": "Total Liabilities Net Minority Interest", "2025-12-31": "2.91107e+11", "2025-09-30": "2.85508e+11", "2025-06-30": "2.65665e+11", "2025-03-31": "2.64437e+11", "2024-12-31": "2.77327e+11"},
+        {"항목": "Stockholders Equity", "2025-12-31": "8.819e+10", "2025-09-30": "7.3733e+10", "2025-06-30": "6.583e+10", "2025-03-31": "6.6796e+10", "2024-12-31": "6.6758e+10"},
+    ],
+    "cashFlow": [
+        {"항목": "Operating Cash Flow", "2025-12-31": "5.3925e+10", "2025-09-30": "2.9728e+10", "2025-06-30": "2.7867e+10", "2025-03-31": "2.3952e+10", "2024-12-31": "2.9935e+10"},
+        {"항목": "Investing Cash Flow", "2025-12-31": "4.886e+09", "2025-09-30": "2.587e+09", "2025-06-30": "5.073e+09", "2025-03-31": "2.917e+09", "2024-12-31": "9.792e+09"},
+        {"항목": "Financing Cash Flow", "2025-12-31": "3.9656e+10", "2025-09-30": "2.7476e+10", "2025-06-30": "2.4833e+10", "2025-03-31": "2.9006e+10", "2024-12-31": "3.9371e+10"},
+    ],
+}
+
+# Microsoft 기본정보
+microsoft_basic_info = {
+    "longName": "Microsoft Corporation",
+    "industry": "Software - Infrastructure",
+    "sector": "Technology",
+    "marketCap": 2950000000000,
+    "sharesOutstanding": 7430000000,
+}
+
+# Microsoft 재무 데이터
+microsoft_financial_data = {
+    "incomeStatement": [
+        {"항목": "Total Revenue", "2025-12-31": "6.25e+10", "2025-09-30": "5.85e+10", "2025-06-30": "5.62e+10", "2025-03-31": "5.28e+10", "2024-12-31": "5.05e+10"},
+        {"항목": "Gross Profit", "2025-12-31": "4.38e+10", "2025-09-30": "4.12e+10", "2025-06-30": "3.95e+10", "2025-03-31": "3.68e+10", "2024-12-31": "3.52e+10"},
+        {"항목": "Operating Income", "2025-12-31": "2.78e+10", "2025-09-30": "2.62e+10", "2025-06-30": "2.48e+10", "2025-03-31": "2.32e+10", "2024-12-31": "2.18e+10"},
+        {"항목": "Net Income", "2025-12-31": "2.25e+10", "2025-09-30": "2.12e+10", "2025-06-30": "2.05e+10", "2025-03-31": "1.92e+10", "2024-12-31": "1.85e+10"},
+    ],
+    "balanceSheet": [
+        {"항목": "Total Assets", "2025-12-31": "4.85e+11", "2025-09-30": "4.65e+11", "2025-06-30": "4.42e+11", "2025-03-31": "4.25e+11", "2024-12-31": "4.12e+11"},
+        {"항목": "Total Liabilities Net Minority Interest", "2025-12-31": "2.35e+11", "2025-09-30": "2.28e+11", "2025-06-30": "2.18e+11", "2025-03-31": "2.12e+11", "2024-12-31": "2.05e+11"},
+        {"항목": "Stockholders Equity", "2025-12-31": "2.50e+11", "2025-09-30": "2.37e+11", "2025-06-30": "2.24e+11", "2025-03-31": "2.13e+11", "2024-12-31": "2.07e+11"},
+    ],
+    "cashFlow": [
+        {"항목": "Operating Cash Flow", "2025-12-31": "3.25e+10", "2025-09-30": "3.05e+10", "2025-06-30": "2.92e+10", "2025-03-31": "2.78e+10", "2024-12-31": "2.65e+10"},
+        {"항목": "Investing Cash Flow", "2025-12-31": "-1.85e+10", "2025-09-30": "-1.72e+10", "2025-06-30": "-1.58e+10", "2025-03-31": "-1.45e+10", "2024-12-31": "-1.32e+10"},
+        {"항목": "Financing Cash Flow", "2025-12-31": "-1.25e+10", "2025-09-30": "-1.18e+10", "2025-06-30": "-1.12e+10", "2025-03-31": "-1.05e+10", "2024-12-31": "-9.85e+09"},
+    ],
+}
+
+# 회사 데이터 저장소
+companies_data = {
+    "AAPL": {
+        "ticker": "AAPL",
+        "name": "Apple Inc. Common Stock",
+        "basicInfo": apple_basic_info,
+        "financialData": apple_financial_data,
+    },
+    "MSFT": {
+        "ticker": "MSFT",
+        "name": "Microsoft Corporation",
+        "basicInfo": microsoft_basic_info,
+        "financialData": microsoft_financial_data,
+    },
+}
+
+# 투자보고서 (Markdown 형식)
+apple_report_markdown = """# Apple Inc. (AAPL) 분석 보고서
+
+## 1) 사업 개요와 최근 분기 핵심 포인트 3가지
+
+- **사업 개요:** Apple Inc.는 전자기기, 소프트웨어 및 온라인 서비스의 설계, 제조 및 판매로 전문으로 하는 글로벌 기술 기업입니다. 주요 제품으로는 iPhone, iPad, Mac, Apple Watch, Apple TV 및 다양한 소프트웨어와 서비스(Apple Music, iCloud 등)가 있습니다.
+
+- **최근 분기 핵심 포인트:**
+  1. **매출 성장:** 최근 분기에서 매출이 전년 대비 숫자아야 시장 기대치를 소폭랬습니다.
+  2. **서비스 부문 성장:** 서비스 부분 매출이 지속적으로 성장하며 전체 매출에서 자치지는 비율이 숫자이고 있습니다.
+  3. **신제품 출시:** 새로운 iPhone 모델과 함께 혁신적인 기능이 추가되어 소비자 반응이 긍정적입니다.
+
+## 2) 실적 추세(매출/영업이익/순이익) 요약
+
+- **매출:** 최근 분기 매출은 $XX billion으로, 전년 동기 대비 X% 숫자했습니다.
+- **영업이익:** 영업이익은 $XX billion으로, 영업이익률은 X%로 안정적인 추세를 보이고 있습니다.
+- **순이익:** 순이익은 $XX billion으로, 순이익률은 X%로 개선되었습니다.
+
+## 3) 리스크 2가지, 모멘텀 2가지
+
+- **리스크:**
+  1. **글로벌 공급망 문제:** 반도체 및 부품 공급 부족이 지속될 경우 생산에 차질이 생길 수 있습니다.
+  2. **경쟁 심화:** 삼성, 구글 등 경쟁사의 기술 발전과 가격 경쟁이 매출에 부정적인 영향을 미칠 수 있습니다.
+
+- **모멘텀:**
+  1. **서비스 부문 성장:** 서비스 매출의 지속적인 성장은 안정적인 수익원으로 작용할 것입니다.
+  2. **신기술 도입:** AR/VR 및 헬스케어 분야에서의 혁신이 새로운 시장 기회를 창출할 수 있습니다.
+
+## 4) 투자 아이디어와 관찰지표 체크리스트
+
+- **투자 아이디어:** Apple의 지속적인 혁신과 강력한 브랜드 충성도는 장기적인 투자 매력 요소입니다. 특히 서비스 부문 성장에 주목할 필요가 있습니다.
+
+- **관찰지표 체크리스트:**
+  - 매출 성장률
+  - 영업이익률
+  - 서비스 부분 매출 비율
+  - 신제품 출시 일정
+  - 글로벌 공급망 안정성
+
+## 5) 10줄 요약
+
+Apple Inc.는 전자기기 및 서비스 분야에서 세계적인 리더로 자리잡고 있습니다. 최근 분기 매출은 숫자세를 보이며, 서비스 부문이 중요한 성장 동력으로 부각되고 있습니다. 그러나 글로벌 공급망 문제와 경쟁 심화는 리스크 요소로 작용할 수 있습니다. 신기술 도입과 서비스 성장 모멘텀은 긍정적인 전망을 제공합니다. 장기적으로 Apple의 브랜드 가치와 혁신 능력은 투자 매력 요소로 작용할 것입니다. 관찰지표를 통해 지속적인 성장을 모니터링하는 것이 중요합니다."""
+
+microsoft_report_markdown = """# Microsoft Corporation (MSFT) 분석 보고서
+
+## 1) 사업 개요와 최근 분기 핵심 포인트 3가지
+
+- **사업 개요:** Microsoft Corporation은 소프트웨어, 클라우드 서비스, 하드웨어 제품을 개발 및 판매하는 글로벌 기술 기업입니다. Windows, Office 365, Azure, LinkedIn, Xbox 등이 주요 제품입니다.
+
+- **최근 분기 핵심 포인트:**
+  1. **Azure 성장:** 클라우드 플랫폼 Azure의 매출이 전년 대비 29% 성장했습니다.
+  2. **AI 투자:** OpenAI와의 파트너십을 통한 AI 기능 강화가 진행 중입니다.
+  3. **기업용 소프트웨어 강세:** Microsoft 365 구독자 수가 지속적으로 증가하고 있습니다.
+
+## 2) 실적 추세(매출/영업이익/순이익) 요약
+
+- **매출:** 최근 분기 매출은 $62.5 billion으로, 전년 동기 대비 15% 성장했습니다.
+- **영업이익:** 영업이익은 $27.8 billion으로, 영업이익률은 44.5%입니다.
+- **순이익:** 순이익은 $22.5 billion으로, 순이익률은 36%입니다.
+
+## 3) 리스크 2가지, 모멘텀 2가지
+
+- **리스크:**
+  1. **규제 리스크:** 반독점 규제 강화 가능성이 있습니다.
+  2. **경쟁 심화:** AWS, Google Cloud와의 치열한 경쟁이 지속되고 있습니다.
+
+- **모멘텀:**
+  1. **AI 리더십:** Copilot 등 AI 기능이 제품 전반에 통합되고 있습니다.
+  2. **클라우드 성장:** Azure의 지속적인 성장이 예상됩니다.
+
+## 4) 투자 아이디어와 관찰지표 체크리스트
+
+- **투자 아이디어:** Microsoft의 다각화된 사업 포트폴리오와 AI 리더십은 장기 투자에 적합합니다.
+
+- **관찰지표 체크리스트:**
+  - Azure 성장률
+  - Microsoft 365 구독자 수
+  - AI 제품 채택률
+  - 영업이익률 추이
+  - 배당 성장률
+
+## 5) 10줄 요약
+
+Microsoft는 클라우드와 AI 분야에서 강력한 성장을 보이고 있습니다. Azure는 AWS에 이어 2위 클라우드 플랫폼으로서 입지를 강화하고 있으며, AI 투자가 본격적으로 수익화되고 있습니다. 기업용 소프트웨어 시장에서의 지배적 위치와 다각화된 수익 구조는 안정성을 제공합니다. 규제 리스크와 경쟁 심화는 주요 관찰 포인트입니다. 장기적으로 Microsoft의 기술 리더십과 재무 건전성은 투자 매력을 유지할 것입니다."""
+
+investment_reports = {
+    "AAPL": {
+        "ticker": "AAPL",
+        "companyName": "Apple Inc.",
+        "markdownContent": apple_report_markdown,
+    },
+    "MSFT": {
+        "ticker": "MSFT",
+        "companyName": "Microsoft Corporation",
+        "markdownContent": microsoft_report_markdown,
+    },
+}
+
+# 투자보고서(전체) - 제목 제외한 전체 내용을 Markdown으로 제공
+apple_full_report_markdown = """- **사업 개요:** Apple Inc.는 전자기기, 소프트웨어 및 온라인 서비스의 설계, 제조 및 판매로 전문으로 하는 글로벌 기술 기업입니다. 주요 제품으로는 iPhone, iPad, Mac, Apple Watch, Apple TV 및 다양한 소프트웨어와 서비스(Apple Music, iCloud 등)가 있습니다.
+
+- **최근 분기 핵심 포인트:**
+  1. **매출 성장:** 최근 분기에서 매출이 전년 대비 숫자아야 시장 기대치를 소폭랬습니다.
+  2. **서비스 부문 성장:** 서비스 부분 매출이 지속적으로 성장하며 전체 매출에서 자치지는 비율이 숫자이고 있습니다.
+  3. **신제품 출시:** 새로운 iPhone 모델과 함께 혁신적인 기능이 추가되어 소비자 반응이 긍정적입니다.
+
+---
+
+- **매출:** 최근 분기 매출은 $XX billion으로, 전년 동기 대비 X% 숫자했습니다.
+- **영업이익:** 영업이익은 $XX billion으로, 영업이익률은 X%로 안정적인 추세를 보이고 있습니다.
+- **순이익:** 순이익은 $XX billion으로, 순이익률은 X%로 개선되었습니다.
+
+---
+
+### 리스크:
+1. **글로벌 공급망 문제:** 반도체 및 부품 공급 부족이 지속될 경우 생산에 차질이 생길 수 있습니다.
+2. **경쟁 심화:** 삼성, 구글 등 경쟁사의 기술 발전과 가격 경쟁이 매출에 부정적인 영향을 미칠 수 있습니다.
+
+### 모멘텀:
+1. **서비스 부문 성장:** 서비스 매출의 지속적인 성장은 안정적인 수익원으로 작용할 것입니다.
+2. **신기술 도입:** AR/VR 및 헬스케어 분야에서의 혁신이 새로운 시장 기회를 창출할 수 있습니다.
+
+---
+
+- **투자 아이디어:** Apple의 지속적인 혁신과 강력한 브랜드 충성도는 장기적인 투자 매력 요소입니다. 특히 서비스 부문 성장에 주목할 필요가 있습니다.
+
+- **관찰지표 체크리스트:**
+  - 매출 성장률
+  - 영업이익률
+  - 서비스 부분 매출 비율
+  - 신제품 출시 일정
+  - 글로벌 공급망 안정성
+
+---
+
+Apple Inc.는 전자기기 및 서비스 분야에서 세계적인 리더로 자리잡고 있습니다. 최근 분기 매출은 숫자세를 보이며, 서비스 부문이 중요한 성장 동력으로 부각되고 있습니다. 그러나 글로벌 공급망 문제와 경쟁 심화는 리스크 요소로 작용할 수 있습니다. 신기술 도입과 서비스 성장 모멘텀은 긍정적인 전망을 제공합니다. 장기적으로 Apple의 브랜드 가치와 혁신 능력은 투자 매력 요소로 작용할 것입니다. 관찰지표를 통해 지속적인 성장을 모니터링하는 것이 중요합니다."""
+
+microsoft_full_report_markdown = """- **사업 개요:** Microsoft Corporation은 소프트웨어, 클라우드 서비스, 하드웨어 제품을 개발 및 판매하는 글로벌 기술 기업입니다. Windows, Office 365, Azure, LinkedIn, Xbox 등이 주요 제품입니다.
+
+- **최근 분기 핵심 포인트:**
+  1. **Azure 성장:** 클라우드 플랫폼 Azure의 매출이 전년 대비 29% 성장했습니다.
+  2. **AI 투자:** OpenAI와의 파트너십을 통한 AI 기능 강화가 진행 중입니다.
+  3. **기업용 소프트웨어 강세:** Microsoft 365 구독자 수가 지속적으로 증가하고 있습니다.
+
+---
+
+- **매출:** 최근 분기 매출은 $62.5 billion으로, 전년 동기 대비 15% 성장했습니다.
+- **영업이익:** 영업이익은 $27.8 billion으로, 영업이익률은 44.5%입니다.
+- **순이익:** 순이익은 $22.5 billion으로, 순이익률은 36%입니다.
+
+---
+
+### 리스크:
+1. **규제 리스크:** 반독점 규제 강화 가능성이 있습니다.
+2. **경쟁 심화:** AWS, Google Cloud와의 치열한 경쟁이 지속되고 있습니다.
+
+### 모멘텀:
+1. **AI 리더십:** Copilot 등 AI 기능이 제품 전반에 통합되고 있습니다.
+2. **클라우드 성장:** Azure의 지속적인 성장이 예상됩니다.
+
+---
+
+- **투자 아이디어:** Microsoft의 다각화된 사업 포트폴리오와 AI 리더십은 장기 투자에 적합합니다.
+
+- **관찰지표 체크리스트:**
+  - Azure 성장률
+  - Microsoft 365 구독자 수
+  - AI 제품 채택률
+  - 영업이익률 추이
+  - 배당 성장률
+
+---
+
+Microsoft는 클라우드와 AI 분야에서 강력한 성장을 보이고 있습니다. Azure는 AWS에 이어 2위 클라우드 플랫폼으로서 입지를 강화하고 있으며, AI 투자가 본격적으로 수익화되고 있습니다. 기업용 소프트웨어 시장에서의 지배적 위치와 다각화된 수익 구조는 안정성을 제공합니다. 규제 리스크와 경쟁 심화는 주요 관찰 포인트입니다. 장기적으로 Microsoft의 기술 리더십과 재무 건전성은 투자 매력을 유지할 것입니다."""
+
+full_reports = {
+    "AAPL": {
+        "ticker": "AAPL",
+        "companyName": "Apple Inc.",
+        "markdownContent": apple_full_report_markdown,
+    },
+    "MSFT": {
+        "ticker": "MSFT",
+        "companyName": "Microsoft Corporation",
+        "markdownContent": microsoft_full_report_markdown,
+    },
+}
+
+
+# ============== API 엔드포인트 ==============
+
+@app.get("/")
+async def root():
+    return {"message": "LLM 투자 보고서 생성 서비스 API", "version": "1.0.0"}
+
+
+@app.get("/api/companies", response_model=list[CompanyListItem])
+async def get_companies():
+    """모든 회사 목록 조회"""
+    return [
+        {"ticker": ticker, "name": data["name"]}
+        for ticker, data in companies_data.items()
+    ]
+
+
+@app.get("/api/companies/{ticker}")
+async def get_company_data(ticker: str):
+    """특정 회사의 기본정보 및 재무 데이터 조회"""
+    ticker = ticker.upper()
+    if ticker not in companies_data:
+        raise HTTPException(status_code=404, detail=f"Company {ticker} not found")
+    return companies_data[ticker]
+
+
+@app.get("/api/companies/{ticker}/basic-info")
+async def get_company_basic_info(ticker: str):
+    """특정 회사의 기본정보만 조회 (dict/json 형식)"""
+    ticker = ticker.upper()
+    if ticker not in companies_data:
+        raise HTTPException(status_code=404, detail=f"Company {ticker} not found")
+    return companies_data[ticker]["basicInfo"]
+
+
+@app.get("/api/companies/{ticker}/financial-data")
+async def get_company_financial_data(ticker: str):
+    """특정 회사의 재무 데이터 조회 (DataFrame 유사 형식)"""
+    ticker = ticker.upper()
+    if ticker not in companies_data:
+        raise HTTPException(status_code=404, detail=f"Company {ticker} not found")
+    return companies_data[ticker]["financialData"]
+
+
+@app.get("/api/reports/{ticker}")
+async def get_investment_report(ticker: str):
+    """특정 회사의 투자보고서 조회 (Markdown 형식)"""
+    ticker = ticker.upper()
+    if ticker not in investment_reports:
+        raise HTTPException(status_code=404, detail=f"Report for {ticker} not found")
+    return investment_reports[ticker]
+
+
+@app.get("/api/reports/{ticker}/full")
+async def get_full_investment_report(ticker: str):
+    """특정 회사의 투자보고서(전체) 조회 - 제목 제외 Markdown 형식"""
+    ticker = ticker.upper()
+    if ticker not in full_reports:
+        raise HTTPException(status_code=404, detail=f"Full report for {ticker} not found")
+    return full_reports[ticker]
+
+
+@app.get("/api/search")
+async def search_companies(query: str = ""):
+    """회사 검색"""
+    companies = stock_search(query)
+    results = []
+    
+    for company in companies:
+            results.append({"ticker": company['Symbol'], "name": company["Name"]})
+    return results
+
+
+# 헬스 체크
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
