@@ -12,6 +12,8 @@ import json
 from backend.search.stock_utils import stock_search
 from backend.finance.stock_info import Stock
 
+from functools import lru_cache
+
 app = FastAPI(
     title="LLM 투자 보고서 생성 서비스 API",
     description="투자 분석 보고서 생성을 위한 백엔드 API",
@@ -361,9 +363,9 @@ async def get_company_data(ticker: str):
 
     if company_data is None or len(company_data) < 2 :
         raise HTTPException(status_code=404, detail=f"Company {ticker} not found")
-    else :
-        # print("-------- get_company_data :", ticker)
-        return company_data
+    
+    # print("-------- get_company_data :", ticker)
+    return company_data
 
 
     # ticker = ticker.upper()
@@ -411,7 +413,6 @@ async def get_full_investment_report(ticker: str):
 @app.get("/api/search")
 async def search_companies(query: str = ""):
     """회사 검색"""
-
     # print(f"search_companies : [{query}]")
     companies = stock_search(query)
     results = []

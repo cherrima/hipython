@@ -35,10 +35,10 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 |--------|----------|------|
 | GET | `/api/companies` | 모든 회사 목록 조회 |
 | GET | `/api/companies/{ticker}` | 특정 회사 전체 데이터 조회 |
-| GET | `/api/companies/{ticker}/basic-info` | 기본정보만 조회 (dict/json) |
-| GET | `/api/companies/{ticker}/financial-data` | 재무 데이터 조회 (DataFrame 형식) |
+<!-- | GET | `/api/companies/{ticker}/basic-info` | 기본정보만 조회 (dict/json) |
+| GET | `/api/companies/{ticker}/financial-data` | 재무 데이터 조회 (DataFrame 형식) | -->
 | GET | `/api/reports/{ticker}` | 투자보고서 조회 (Markdown) |
-| GET | `/api/reports/{ticker}/full` | 투자보고서(전체) 조회 (제목 제외 Markdown) |
+<!-- | GET | `/api/reports/{ticker}/full` | 투자보고서(전체) 조회 (제목 제외 Markdown) | -->
 | GET | `/api/search?q={query}` | 회사 검색 |
 | GET | `/health` | 헬스 체크 |
 
