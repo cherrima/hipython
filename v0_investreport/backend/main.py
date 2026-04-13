@@ -10,6 +10,7 @@ from typing import Optional
 import json
 
 from backend.search.stock_utils import stock_search
+from backend.finance.stock_info import Stock
 
 app = FastAPI(
     title="LLM 투자 보고서 생성 서비스 API",
@@ -344,6 +345,7 @@ async def root():
 @app.get("/api/companies", response_model=list[CompanyListItem])
 async def get_companies():
     """모든 회사 목록 조회"""
+    print("get_companies !!!")
     return [
         {"ticker": ticker, "name": data["name"]}
         for ticker, data in companies_data.items()
@@ -353,28 +355,39 @@ async def get_companies():
 @app.get("/api/companies/{ticker}")
 async def get_company_data(ticker: str):
     """특정 회사의 기본정보 및 재무 데이터 조회"""
-    ticker = ticker.upper()
-    if ticker not in companies_data:
+
+    stock = Stock(ticker)
+    company_data = stock.get_company_data()
+
+    if company_data is None or len(company_data) < 2 :
         raise HTTPException(status_code=404, detail=f"Company {ticker} not found")
-    return companies_data[ticker]
+    else :
+        # print("-------- get_company_data :", ticker)
+        return company_data
 
 
-@app.get("/api/companies/{ticker}/basic-info")
-async def get_company_basic_info(ticker: str):
-    """특정 회사의 기본정보만 조회 (dict/json 형식)"""
-    ticker = ticker.upper()
-    if ticker not in companies_data:
-        raise HTTPException(status_code=404, detail=f"Company {ticker} not found")
-    return companies_data[ticker]["basicInfo"]
+    # ticker = ticker.upper()
+    # if ticker not in companies_data:
+    #     
+    # return companies_data[ticker]
 
 
-@app.get("/api/companies/{ticker}/financial-data")
-async def get_company_financial_data(ticker: str):
-    """특정 회사의 재무 데이터 조회 (DataFrame 유사 형식)"""
-    ticker = ticker.upper()
-    if ticker not in companies_data:
-        raise HTTPException(status_code=404, detail=f"Company {ticker} not found")
-    return companies_data[ticker]["financialData"]
+# @app.get("/api/companies/{ticker}/basic-info")
+# async def get_company_basic_info(ticker: str):
+#     """특정 회사의 기본정보만 조회 (dict/json 형식)"""
+#     ticker = ticker.upper()
+#     if ticker not in companies_data:
+#         raise HTTPException(status_code=404, detail=f"Company {ticker} not found")
+#     return companies_data[ticker]["basicInfo"]
+
+
+# @app.get("/api/companies/{ticker}/financial-data")
+# async def get_company_financial_data(ticker: str):
+#     """특정 회사의 재무 데이터 조회 (DataFrame 유사 형식)"""
+#     ticker = ticker.upper()
+#     if ticker not in companies_data:
+#         raise HTTPException(status_code=404, detail=f"Company {ticker} not found")
+#     return companies_data[ticker]["financialData"]
 
 
 @app.get("/api/reports/{ticker}")
@@ -398,6 +411,8 @@ async def get_full_investment_report(ticker: str):
 @app.get("/api/search")
 async def search_companies(query: str = ""):
     """회사 검색"""
+
+    # print(f"search_companies : [{query}]")
     companies = stock_search(query)
     results = []
     

@@ -19,6 +19,19 @@ interface BasicInfoProps {
   cashFlow: FinancialDataRow[]
 }
 
+// 숫자 포맷팅 함수: 천 단위 콤마 추가
+function formatNumber(value: number): string {
+  return value.toLocaleString('en-US')
+}
+
+// marketCap 전용 포맷팅: 천 단위 콤마 + (X,XXX M) 형식
+function formatMarketCap(value: number): string {
+  const formatted = formatNumber(value)
+  const millions = Math.round(value / 1_000_000)
+  const millionsFormatted = formatNumber(millions)
+  return `${formatted} (${millionsFormatted} M)`
+}
+
 // 기본 정보 테이블 (dict/json 형식 데이터)
 function BasicInfoTable({
   basicInfo,
@@ -29,8 +42,11 @@ function BasicInfoTable({
     { key: "longName", label: "longName", value: basicInfo.longName },
     { key: "industry", label: "industry", value: basicInfo.industry },
     { key: "sector", label: "sector", value: basicInfo.sector },
-    { key: "marketCap", label: "marketCap", value: basicInfo.marketCap },
-    { key: "sharesOutstanding", label: "sharesOutstanding", value: basicInfo.sharesOutstanding },
+    // { key: "marketCap", label: "marketCap", value: basicInfo.marketCap },
+    // { key: "sharesOutstanding", label: "sharesOutstanding", value: basicInfo.sharesOutstanding },
+    { key: "marketCap", label: "marketCap", value: formatMarketCap(basicInfo.marketCap) },
+    { key: "sharesOutstanding", label: "sharesOutstanding", value: formatNumber(basicInfo.sharesOutstanding) },
+
   ]
 
   return (
@@ -107,22 +123,29 @@ export default function BasicInfo({
 }: BasicInfoProps) {
   return (
     <div className="space-y-8 p-6">
-      {/* 페이지 제목 */}
-      <h2 className="text-xl font-bold text-foreground">
-        {ticker}: {companyName} 기본정보
-      </h2>
+      {/* 기본정보 섹션 */}
+      <section>
+        <h2 className="text-xl font-bold text-foreground mb-4">
+          {ticker}: {companyName} 기본정보
+        </h2>
+        <BasicInfoTable basicInfo={basicInfo} />
+      </section>
 
-      {/* 기본 정보 테이블 */}
-      <BasicInfoTable basicInfo={basicInfo} />
+      {/* 재무정보 섹션 */}
+      <section className="space-y-6">
+        <h2 className="text-xl font-bold text-foreground">
+          {ticker}: {companyName} 재무정보
+        </h2>
 
-      {/* 분기별 손익계산서 */}
-      <FinancialTable title="Quarterly Income Statement" data={incomeStatement} />
+        {/* 분기별 손익계산서 */}
+        <FinancialTable title="Quarterly Income Statement" data={incomeStatement} />
 
-      {/* 분기별 재무상태표 */}
-      <FinancialTable title="Quarterly Balance Sheet" data={balanceSheet} />
+        {/* 분기별 재무상태표 */}
+        <FinancialTable title="Quarterly Balance Sheet" data={balanceSheet} />
 
-      {/* 분기별 현금흐름표 */}
-      <FinancialTable title="Quarterly Cash Flow" data={cashFlow} />
+        {/* 분기별 현금흐름표 */}
+        <FinancialTable title="Quarterly Cash Flow" data={cashFlow} />
+      </section>
     </div>
   )
 }

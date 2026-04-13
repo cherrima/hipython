@@ -10,13 +10,14 @@ client = Client("http://127.0.0.1:7700", MEILISEARCH_MASTER_KEY)
 #종목 모드 검색
 def stock_search(query: str):
     # MeiliSearch
+
+    print(f"stock_search: [{query}]")
     result = client.index('nasdaq').search(
         query,
         {'attributesToSearchOn': ['Symbol', 'Name']}
     )
     
     if (result['estimatedTotalHits']) :
-        print (result['estimatedTotalHits'])
         return result['hits'][:10] # 10개 이내로 
     else :
         return []

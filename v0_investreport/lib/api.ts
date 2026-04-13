@@ -3,7 +3,7 @@
  * 백엔드 URL을 환경변수로 설정 가능 (기본값: http://localhost:8000)
  */
 
-import type { CompanyData, InvestmentReport, CompanyBasicInfo, FinancialData } from "./types"
+import type { CompanyData, InvestmentReport } from "./types"
 
 // API 기본 URL (환경변수 또는 기본값)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
@@ -36,45 +36,48 @@ export async function fetchCompanies(): Promise<CompanyListItem[]> {
  * 회사 검색
  */
 export async function searchCompanies(query: string): Promise<CompanyListItem[]> {
-  const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`)
+  const url = `${API_BASE_URL}/api/search?query=${encodeURIComponent(query)}`
+  console.log("[v0] searchCompanies - API URL:", url)
+  console.log("[v0] searchCompanies - query:", query)
+  
+  const response = await fetch(url)
+  console.log("[v0] searchCompanies - response status:", response.status)
+  
   if (!response.ok) {
     throw new Error(`Failed to search companies: ${response.statusText}`)
   }
-  return response.json()
+  const data = await response.json()
+  console.log("[v0] searchCompanies - results:", data)
+  return data
 }
 
 /**
  * 특정 회사의 전체 데이터 조회 (기본정보 + 재무데이터)
+ * main.py에서 [{...}] 형식으로 반환하므로 첫 번째 요소 추출
  */
 export async function fetchCompanyData(ticker: string): Promise<CompanyData> {
-  const response = await fetch(`${API_BASE_URL}/api/companies/${ticker}`)
+  const url = `${API_BASE_URL}/api/companies/${ticker}`
+  console.log("[v0] fetchCompanyData - API URL:", url)
+  
+  const response = await fetch(url)
+  console.log("[v0] fetchCompanyData - response status:", response.status)
+  
   if (!response.ok) {
     throw new Error(`Failed to fetch company data: ${response.statusText}`)
   }
-  return response.json()
+  
+  const data = await response.json()
+  console.log("[v0] fetchCompanyData - raw data:", data)
+  
+  // main.py에서 [{...}] 배열 형식으로 반환하므로 첫 번째 요소 추출
+  const companyData = Array.isArray(data) ? data[0] : data
+  console.log("[v0] fetchCompanyData - companyData:", companyData)
+  
+  return companyData
 }
 
-/**
- * 특정 회사의 기본정보만 조회 (dict/json 형식)
- */
-export async function fetchCompanyBasicInfo(ticker: string): Promise<CompanyBasicInfo> {
-  const response = await fetch(`${API_BASE_URL}/api/companies/${ticker}/basic-info`)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch basic info: ${response.statusText}`)
-  }
-  return response.json()
-}
-
-/**
- * 특정 회사의 재무 데이터 조회 (DataFrame 유사 형식)
- */
-export async function fetchFinancialData(ticker: string): Promise<FinancialData> {
-  const response = await fetch(`${API_BASE_URL}/api/companies/${ticker}/financial-data`)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch financial data: ${response.statusText}`)
-  }
-  return response.json()
-}
+// 기본정보와 재무데이터는 fetchCompanyData()에서 한 번에 조회하므로
+// fetchCompanyBasicInfo, fetchFinancialData 개별 함수는 제거됨
 
 /**
  * 특정 회사의 투자보고서 조회 (Markdown 형식)
