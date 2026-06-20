@@ -1,0 +1,35 @@
+# 가상환경 설치 및 확인 
+# @ Anaconda (base) 
+conda create -n ml_power python=3.11 
+conda env list | findstr ml_power
+conda activate ml_power
+
+# python 설치 버전 확인
+# @ (ml_power)
+conda list | findstr python
+
+# 주피터 노트북 & 가상환경 설치
+conda install jupyter ipykernel
+conda list | findstr "jupyter ipykernel"
+# 주피터 노트북 가상환경 커널 설치
+conda install ipykernel
+# Machine Learning Library 설치
+conda install numpy pandas matplotlib seaborn scikit-learn scipy
+conda list | findstr "numpy pandas matplotlib seaborn scikit-learn scipy"
+
+# ortools keras tensorflow datetime
+
+
+# CUDA 저장소 키링 추가
+wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+
+# CUDA Toolkit 설치
+sudo apt-get install -y cuda-toolkit-12-9
+
+# cuDNN 설치
+sudo apt-get install -y nvidia-cudnn
+
+
+https://docs.google.com/spreadsheets/d/1fcfEQy6CfGEjnGcmJzEtLV_c_b9Kk7h7hDUNnl_NWHE/edit?pli=1&gid=1982669107#gid=1982669107

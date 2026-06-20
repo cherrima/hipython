@@ -1,0 +1,3 @@
+중소벤처기업부, Korea AI Manufacturing Platform(KAMP),
+CNC머신 AI데이터셋, KAIST(UNIST, 이피엠솔루션즈), 2020.12.14.,
+https://kamp-ai.kr
